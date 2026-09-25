@@ -1,0 +1,18 @@
+# 编译产物
+SeepTool.exe
+*.pdb
+*.obj
+
+# 运行时缓存（用户本机数据，不应上传）
+detection_cache.json
+paths.json
+version_patch.log
+*.bak
+
+# 旧版 WebUI 产物（已弃用）
+ui/
+
+# IDE
+.vs/
+bin/
+obj/
