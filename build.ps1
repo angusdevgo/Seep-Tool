@@ -18,7 +18,8 @@ $sources = @(
     "$src\ListaryModule.cs",
     "$src\OneClickActivate.cs",
     "$src\SeerModule.cs",
-    "$src\SnipasteModule.cs"
+    "$src\SnipasteModule.cs",
+    "$src\PixPinModule.cs"
 )
 
 $argsList = @(

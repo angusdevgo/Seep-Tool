@@ -602,7 +602,8 @@ namespace Seep.Suite
                 new string[] { "ut", "Uninstall Tool 卸载工具", "EXECryptor VM 共享内存 IPC 旁路 · IsRegistered 恒真", "patch" },
                 new string[] { "seer", "Seer 极速文件预览", "双重决策分支走查 · 彻底消除 7 天倒计时与激活弹窗", "patch" },
                 new string[] { "listary", "Listary Pro 效率搜索", "三哈希算法还原 · 192字符密钥 · 一键离线写入配置", "activate" },
-                new string[] { "snipaste", "Snipaste 截图利器", "Ed25519 签名体系与 Blake2s-128 设备指纹逆向生成", "gen" }
+                new string[] { "snipaste", "Snipaste 截图利器", "Ed25519 签名体系与 Blake2s-128 设备指纹逆向生成", "gen" },
+                new string[] { "pixpin", "PixPin 截图贴图工具", "11 处会员特权判定走查 · 14 项 VIP 功能全量解锁 (CWE-602)", "patch" }
             };
 
             _targets.Clear();
@@ -1286,6 +1287,9 @@ namespace Seep.Suite
                     case "seer":
                         ok = SeerModule.Patch(item.Path, l);
                         break;
+                    case "pixpin":
+                        ok = PixPinModule.Patch(item.Path, l);
+                        break;
                 }
 
                 foreach (var line in l) Log(line);
@@ -1326,6 +1330,9 @@ namespace Seep.Suite
                         break;
                     case "seer":
                         ok = SeerModule.Revert(item.Path, l);
+                        break;
+                    case "pixpin":
+                        ok = PixPinModule.Revert(item.Path, l);
                         break;
                 }
 

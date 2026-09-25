@@ -250,6 +250,56 @@ namespace Seep.Core
         }
     }
 
+    // ─── PixPin: 11 处会员特权判定分支走查 (CWE-602) ───
+    public class PixPinDetector : ITargetDetector
+    {
+        public string Key { get { return "pixpin"; } }
+
+        public List<string> Locate() { return PixPinModule.Locate(); }
+
+        public DetectionResult Detect(string dir)
+        {
+            var r = new DetectionResult();
+            string dll = Path.Combine(dir, "PixAuth.dll");
+            if (!File.Exists(dll)) return DetectionResult.Of("missing", "未找到 PixAuth.dll");
+            try
+            {
+                byte[] d = File.ReadAllBytes(dll);
+                r.Evidence.Add("PixAuth.dll SHA256: " + PeUtil.Sha256Hex(d).Substring(0, 16) + "...");
+
+                int patched = 0, original = 0, unknown = 0;
+                foreach (var s in PixPinModule.Sites)
+                {
+                    long off;
+                    if (!PeUtil.RvaToOffset(d, s.Offset, out off)) { unknown++; continue; }
+                    if (PeUtil.BytesAt(d, off, s.Replace)) patched++;
+                    else if (PeUtil.BytesAt(d, off, s.Expect)) original++;
+                    else unknown++;
+                }
+                r.Evidence.Add(string.Format("特权判定补丁: {0}/{1} 已就位（原版 {2}，未知 {3}）",
+                    patched, PixPinModule.Sites.Length, original, unknown));
+
+                if (patched == PixPinModule.Sites.Length)
+                {
+                    r.State = "patched";
+                    r.Detail = "14 项会员功能全部解锁（翻译/表格/公式/擦除/鼠标/同步/长截图/录制/键鼠/导出/PDF/马赛克/条码/摄像头）";
+                }
+                else if (original > 0)
+                {
+                    r.State = "original";
+                    r.Detail = string.Format("原版或部分修补（{0}/{1} 已就位）", patched, PixPinModule.Sites.Length);
+                }
+                else
+                {
+                    r.State = "unknown";
+                    r.Detail = "未知构建（特征码不匹配，未作修改）";
+                }
+            }
+            catch (Exception ex) { r.State = "unknown"; r.Detail = "检测异常: " + ex.Message; }
+            return r;
+        }
+    }
+
     // ─── 引擎入口 ───
     public static class DetectionEngine
     {
@@ -260,6 +310,7 @@ namespace Seep.Core
             { "seer", new SeerDetector() },
             { "listary", new ListaryDetector() },
             { "snipaste", new SnipasteDetector() },
+            { "pixpin", new PixPinDetector() },
         };
 
         public static ITargetDetector Get(string key)
@@ -348,6 +399,7 @@ namespace Seep.Core
                 case "seer": candidates = new string[] { "Seer.exe" }; break;
                 case "listary": candidates = new string[] { "Listary.exe" }; break;
                 case "snipaste": candidates = new string[] { "Snipaste.exe" }; break;
+                case "pixpin": candidates = new string[] { "PixAuth.dll" }; break;
                 default: return null;
             }
             foreach (var c in candidates)

@@ -54,6 +54,7 @@
 | **Uninstall Tool** | **PE 调用重定向** | 鉴权内核受 EXECryptor VM 强保护并依赖 IPC。通过将主程序 `call atoi(json["result"])`（VA `0x140009E0F`）重定向到 `.text` 空隙的 `mov eax,3; ret` 打桩地址，使 `IsRegistered` 判定恒真。 | 原位微创修补 + 注册表写入 |
 | **Seer** | **双点决策走查** | 针对新版两级判定：一是 `AppLicenser::isLicensed`（文件偏移 `0x496C10`）打桩为 `mov al,1; ret`；二是拦截 `0x495B70` 的试用倒计时与购买弹窗封装函数打桩为 `xor eax,eax; ret`，**彻底消除“7天后停止运行”及授权码模态弹窗**。 | 双点入口打桩 + 状态自愈 |
 | **Listary Pro** | **三哈希算法还原** | 逆向还原 `LicenseChecker` 校验链：提取 192 字符密钥中 `[160:179]` 核心 19 位校验段，重现 H1(多项式×43)、H2(ELF变种)、H3(四轮异或) 混合拼装 96-Bit 整数及 5-Bit Base32 编码映射，支持任意自定义邮箱。 | 纯离线算法 100% 还原 |
+| **PixPin 3.5.5.1** | **11 处特权判定走查** | `PixAuth.dll` 内 14 项会员功能（FeatureType 枚举）全部由本地布尔函数决定 → 函数入口恒值化（`mov al,1; ret`）即全量解锁。**攻克率 14/14 = 100%** | 原位微创修补 + 单体还原 |
 | **Snipaste 2.11.3 PRO** | **Ed25519 签名体系** | 逆向提取内嵌官方公钥密文及 16 字节周期 Keystream，替换为本地私钥配套公钥；推导 Windows `MachineGuid` 的 Blake2s-128 硬件哈希与相邻 ASCII 差校验和；生成带 Gzip 压缩及 Sig XOR 混淆的官方同构激活码。 | 本地公钥替换 + 离线签发 |
 
 ---
@@ -152,7 +153,7 @@ Seep-Tool/
 │   └── version.dll          # 纯 C/Zig 构建的符号转发代理 DLL (201KB)
 ├── tools/
 │   └── snipaste_keygen.py   # Snipaste 激活码高精度算法桥
-├── docs/                    # 界面实测截图 (app-preview.png)
+├── docs/                    # 界面实测截图 + PixPin-RE.md 逆向研报
 └── src/                     # 模块化 C# 源码 (共 3721 行)
     ├── Program.cs           # WPF 客户端主窗体及 Ann 黑曜石设计系统
     ├── DetectionEngine.cs   # 统一检测接口、结果缓存与 paths.json 控制
@@ -165,6 +166,7 @@ Seep-Tool/
     ├── SeerModule.cs        # Seer 双点分支走查与指纹库
     ├── ListaryModule.cs     # Listary 三哈希还原与 Preferences 校验
     ├── SnipasteModule.cs    # Snipaste Blake2s-128 与公钥密文修补
+    ├── PixPinModule.cs      # PixPin 11 处会员特权判定走查 (14 项 VIP 功能解锁)
     └── app.manifest         # 高 DPI 感知与 Win10/11 兼容性清单
 ```
 

@@ -218,6 +218,27 @@ namespace Seep.Core
             return Dedup(found);
         }
 
+        // PixPin（会员特权走查目标，需含 PixAuth.dll 的安装目录）
+        public static List<string> FindPixPin()
+        {
+            var found = new List<string>();
+            found.AddRange(FindRunningProcessDir("PixPin", "PixPin.exe"));
+            found.AddRange(FindByDisplayName("PixPin", "PixPin.exe"));
+            string[] known = new string[]
+            {
+                @"D:\Data\PixPin",
+                @"C:\Program Files\PixPin",
+                @"C:\Program Files (x86)\PixPin",
+                @"D:\Program Files\PixPin",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PixPin")
+            };
+            found.AddRange(CheckKnownDirs(known, "PixPin.exe"));
+            // paths.json 用户自定义路径兜底
+            foreach (var cp in CustomPaths.Get("pixpin"))
+                if (File.Exists(Path.Combine(cp, "PixPin.exe"))) found.Add(Norm(cp));
+            return Dedup(found);
+        }
+
         static string Norm(string p) { return Path.GetFullPath(p).TrimEnd('\\'); }
 
         static List<string> Dedup(List<string> input)
