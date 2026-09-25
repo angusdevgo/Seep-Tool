@@ -16,3 +16,4 @@ ui/
 .vs/
 bin/
 obj/
+crash.log
