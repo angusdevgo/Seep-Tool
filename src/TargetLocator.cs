@@ -206,9 +206,10 @@ namespace Seep.Core
             found.AddRange(FindByDisplayName("Listary", "Listary.exe"));
             string[] known = new string[]
             {
+                @"C:\Program Files\Listary",
+                @"C:\Program Files (x86)\Listary",
                 @"D:\Data\Listary",
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Listary"),
-                @"C:\Program Files\Listary"
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Listary")
             };
             found.AddRange(CheckKnownDirs(known, "Listary.exe"));
             // paths.json 用户自定义路径兜底

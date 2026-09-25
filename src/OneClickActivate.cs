@@ -19,6 +19,49 @@ namespace Seep.Modules
                 "Listary", "UserProfile", "Settings", "Preferences.json");
         }
 
+        public static void EnsureHostsBlock(IList<string> log)
+        {
+            try
+            {
+                string hostsPath = Path.Combine(Environment.SystemDirectory, "drivers", "etc", "hosts");
+                if (File.Exists(hostsPath))
+                {
+                    string content = File.ReadAllText(hostsPath);
+                    if (!content.Contains("account.listary.com"))
+                    {
+                        // 尝试直接追加，如果权限不足则静默忽略或通过提权
+                        try
+                        {
+                            File.AppendAllText(hostsPath, "\r\n# Block Listary license check\r\n127.0.0.1 account.listary.com\r\n");
+                            log.Add("[+] 已自动写入 hosts 规则屏蔽 account.listary.com（防回退）");
+                        }
+                        catch
+                        {
+                            // 提权写入
+                            ProcessStartInfo psi = new ProcessStartInfo
+                            {
+                                FileName = "powershell.exe",
+                                Arguments = "-NoProfile -Command \"Add-Content -Path $env:SystemRoot\\System32\\drivers\\etc\\hosts -Value '`r`n127.0.0.1 account.listary.com' -Encoding ASCII\"",
+                                Verb = "runas",
+                                WindowStyle = ProcessWindowStyle.Hidden,
+                                UseShellExecute = true
+                            };
+                            Process.Start(psi);
+                            log.Add("[+] 已通过提权发起 hosts 防回退规则写入");
+                        }
+                    }
+                    else
+                    {
+                        log.Add("[=] hosts 已包含 account.listary.com 屏蔽规则（防回退有效）");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Add("[!] 写入 hosts 忽略: " + ex.Message);
+            }
+        }
+
         public static bool KillListary(IList<string> log)
         {
             try
@@ -53,6 +96,7 @@ namespace Seep.Modules
             log.Add("=== Listary Pro 一键离线激活 ===");
             log.Add("[1] 配置路径: " + prefsPath);
 
+            EnsureHostsBlock(log);
             KillListary(log);
 
             // 备份
