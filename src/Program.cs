@@ -739,40 +739,15 @@ namespace Seep.Suite
             Grid.SetColumn(item.ActionBtn, 4);
             g.Children.Add(item.ActionBtn);
 
-            // ── 列 5: 还原列 ──
-            if (item.ActionType == "patch" || item.ActionType == "bandizip")
-            {
-                if (item.ActionType == "bandizip")
-                {
-                    item.RevertBtn = CreateActionButton("还原 ↻", ColBtnDark, Color.FromRgb(244, 63, 94));
-                    item.RevertBtn.Click += (s, e) => BandizipRemoveProxy(item);
-                }
-                else
-                {
-                    item.RevertBtn = CreateActionButton("还原 ↻", ColBtnDark, Color.FromRgb(244, 63, 94));
-                    item.RevertBtn.Click += (s, e) => RevertSingleTarget(item);
-                }
-                item.RevertBtn.Width = 62;
-                item.RevertBtn.Height = 30;
-                item.RevertBtn.VerticalAlignment = VerticalAlignment.Center;
-                item.RevertBtn.HorizontalAlignment = HorizontalAlignment.Center;
-                Grid.SetColumn(item.RevertBtn, 5);
-                g.Children.Add(item.RevertBtn);
-            }
-            else
-            {
-                // gen 类目标无还原操作，放一个占位保持列对齐
-                var ph = new TextBlock
-                {
-                    Text = "—",
-                    FontSize = 11,
-                    Foreground = new SolidColorBrush(Color.FromRgb(60, 68, 80)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                Grid.SetColumn(ph, 5);
-                g.Children.Add(ph);
-            }
+            // ── 列 5: 还原列 (全部 6 款软件统一配置专属独立还原按钮) ──
+            item.RevertBtn = CreateActionButton("还原 ↻", ColBtnDark, Color.FromRgb(244, 63, 94));
+            item.RevertBtn.Width = 62;
+            item.RevertBtn.Height = 30;
+            item.RevertBtn.VerticalAlignment = VerticalAlignment.Center;
+            item.RevertBtn.HorizontalAlignment = HorizontalAlignment.Center;
+            item.RevertBtn.Click += (s, e) => RevertSingleTarget(item);
+            Grid.SetColumn(item.RevertBtn, 5);
+            g.Children.Add(item.RevertBtn);
 
             card.Child = g;
             return card;
@@ -1125,7 +1100,7 @@ namespace Seep.Suite
                 switch (item.Key)
                 {
                     case "bandizip":
-                        ok = BandizipModule.Revert(item.Path, l);
+                        ok = BandizipDllModule.RemoveProxy(item.Path, l);
                         break;
                     case "ut":
                         ok = UninstallToolModule.Revert(item.Path, l);
@@ -1133,11 +1108,14 @@ namespace Seep.Suite
                     case "seer":
                         ok = SeerModule.Revert(item.Path, l);
                         break;
-                    case "pixpin":
-                        ok = PixPinModule.Revert(item.Path, l);
+                    case "listary":
+                        ok = OneClickActivate.RevertListary(l);
                         break;
                     case "snipaste":
                         ok = SnipasteModule.Revert(item.Path, l);
+                        break;
+                    case "pixpin":
+                        ok = PixPinModule.Revert(item.Path, l);
                         break;
                 }
 

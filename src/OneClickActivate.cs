@@ -19,7 +19,64 @@ namespace Seep.Modules
                 "Listary", "UserProfile", "Settings", "Preferences.json");
         }
 
-        public static void EnsureHostsBlock(IList<string> log)
+                public static void RemoveHostsBlock(IList<string> log)
+        {
+            try
+            {
+                string hostsPath = Path.Combine(Environment.SystemDirectory, "drivers", "etc", "hosts");
+                if (File.Exists(hostsPath))
+                {
+                    string content = File.ReadAllText(hostsPath);
+                    if (content.Contains("account.listary.com"))
+                    {
+                        var lines = File.ReadAllLines(hostsPath);
+                        var newLines = new List<string>();
+                        foreach (var line in lines)
+                        {
+                            if (!line.Contains("account.listary.com"))
+                            {
+                                newLines.Add(line);
+                            }
+                        }
+
+                        try
+                        {
+                            File.WriteAllLines(hostsPath, newLines.ToArray(), Encoding.ASCII);
+                            log.Add("[+] 已成功从 hosts 中移除 account.listary.com 屏蔽项（恢复官方网络连接）");
+                        }
+                        catch
+                        {
+                            // 提权写入
+                            string tempPs = Path.Combine(Path.GetTempPath(), "remove_hosts.ps1");
+                            string psCode = @"$h = ""$env:SystemRoot\System32\drivers\etc\hosts""; (Get-Content $h) | Where-Object { $_ -notmatch 'account\.listary\.com' } | Set-Content $h -Encoding ASCII";
+                            File.WriteAllText(tempPs, psCode, Encoding.ASCII);
+                            ProcessStartInfo psi = new ProcessStartInfo
+                            {
+                                FileName = "powershell.exe",
+                                Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + tempPs + "\"",
+                                Verb = "runas",
+                                WindowStyle = ProcessWindowStyle.Hidden,
+                                UseShellExecute = true
+                            };
+                            var p = Process.Start(psi);
+                            if (p != null) p.WaitForExit();
+                            try { File.Delete(tempPs); } catch { }
+                            log.Add("[+] 已通过提权从 hosts 中移除 account.listary.com 屏蔽项");
+                        }
+                    }
+                    else
+                    {
+                        log.Add("[=] hosts 中无 account.listary.com 条目，无需清理");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Add("[!] 清理 hosts 异常: " + ex.Message);
+            }
+        }
+
+public static void EnsureHostsBlock(IList<string> log)
         {
             try
             {
@@ -193,7 +250,73 @@ namespace Seep.Modules
             return true;
         }
 
-        public static bool ActivateSnipaste(int days, IList<string> log)
+                /// <summary>
+        /// 彻底还原 Listary 到官方原版未激活状态：
+        /// 关闭进程 -> 移除 hosts 屏蔽 -> 清理 Preferences.json 授权信息 -> 重启
+        /// </summary>
+        public static bool RevertListary(IList<string> log)
+        {
+            string prefsPath = ListaryPrefsPath();
+            log.Add("=== Listary Pro 单体彻底还原官方原版 ===");
+            log.Add("[1] 配置路径: " + prefsPath);
+
+            // 1. 关闭 Listary
+            KillListary(log);
+
+            // 2. 移除 hosts 阻断
+            RemoveHostsBlock(log);
+
+            // 3. 彻底清理 Preferences.json 中的授权信息
+            try
+            {
+                if (File.Exists(prefsPath))
+                {
+                    string json = File.ReadAllText(prefsPath, Encoding.UTF8);
+                    if (!string.IsNullOrWhiteSpace(json))
+                    {
+                        var serializer = new JavaScriptSerializer();
+                        var root = serializer.Deserialize<Dictionary<string, object>>(json);
+                        if (root != null && root.ContainsKey("Settings"))
+                        {
+                            var settings = root["Settings"] as Dictionary<string, object>;
+                            if (settings != null)
+                            {
+                                settings.Remove("Listary5.ProLicense.Name");
+                                settings.Remove("Listary5.ProLicense.Email");
+                                settings.Remove("Listary5.ProLicense.Key");
+                                settings.Remove("LastUpdateTimeV1");
+                                log.Add("[2] 已彻底清除 Preferences.json 中的所有 ProLicense 授权键值与校验时间戳");
+                            }
+                        }
+
+                        string outJson = serializer.Serialize(root);
+                        File.WriteAllText(prefsPath, outJson, new UTF8Encoding(false));
+                        log.Add("[3] 纯净原版配置已写回");
+                    }
+                }
+
+                // 清理备份文件
+                string bak = prefsPath + ".bak";
+                if (File.Exists(bak))
+                {
+                    try { File.Delete(bak); log.Add("[+] 已清理历史备份文件: " + bak); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Add("[-] 清理配置异常: " + ex.Message);
+                return false;
+            }
+
+            // 4. 重启 Listary
+            log.Add("[4] 重新拉起 Listary 官方程序...");
+            StartListary(log);
+
+            log.Add("[✓] Listary 已彻底恢复为官方原版未激活状态！");
+            return true;
+        }
+
+public static bool ActivateSnipaste(int days, IList<string> log)
         {
             log.Add("=== Snipaste 一键生成激活码 ===");
             try

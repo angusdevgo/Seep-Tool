@@ -219,7 +219,26 @@ namespace Seep.Modules
                     }
                 }
 
-                if (File.Exists(ini)) { File.Delete(ini); log.Add("[+] 已删除 version_patch.ini"); }
+                                // 恢复可能存在的静态 PE 补丁备份
+                string[] exeCandidates = new string[] { "Bandizip.x64.exe", "Bandizip.exe" };
+                foreach (var exeName in exeCandidates)
+                {
+                    string targetExe = Path.Combine(dir, exeName);
+                    string targetBak = targetExe + ".bak";
+                    if (File.Exists(targetBak))
+                    {
+                        try
+                        {
+                            File.Copy(targetBak, targetExe, true);
+                            File.Delete(targetBak);
+                            log.Add("[+] 已从备份恢复原版二进制 -> " + targetExe);
+                            removed = true;
+                        }
+                        catch { }
+                    }
+                }
+
+if (File.Exists(ini)) { File.Delete(ini); log.Add("[+] 已删除 version_patch.ini"); }
                 if (File.Exists(logFile)) { File.Delete(logFile); log.Add("[+] 已清除运行日志"); }
 
                 log.Add(removed ? "[✓] Bandizip 已彻底还原为官方原版！" : "[=] 未发现代理文件，无需还原");
