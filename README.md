@@ -61,7 +61,7 @@
 ## 📸 UI Design & Features
 
 <div align="center">
-  <img src="docs/layout-after.png" alt="Seep-Tool 目标状态与修补矩阵" width="900" />
+  <img src="docs/app-preview.png" alt="Seep-Tool 目标状态与修补矩阵 (Ann Obsidian 6列对齐设计)" width="950" />
 </div>
 
 
@@ -152,7 +152,7 @@ Seep-Tool/
 │   └── version.dll          # 纯 C/Zig 构建的符号转发代理 DLL (201KB)
 ├── tools/
 │   └── snipaste_keygen.py   # Snipaste 激活码高精度算法桥
-├── docs/                    # 界面实测截图
+├── docs/                    # 界面实测截图 (app-preview.png)
 └── src/                     # 模块化 C# 源码 (共 3721 行)
     ├── Program.cs           # WPF 客户端主窗体及 Ann 黑曜石设计系统
     ├── DetectionEngine.cs   # 统一检测接口、结果缓存与 paths.json 控制
