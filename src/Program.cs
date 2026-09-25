@@ -958,6 +958,17 @@ namespace Seep.Suite
             };
             lp.Children.Add(txtListaryOutput);
 
+            Button btnDirectActivate = CreateActionButton("🚀 一键直接激活 Listary（自动写入并生效，推荐！）", ColGreen, Colors.White);
+            btnDirectActivate.Height = 36;
+            btnDirectActivate.Margin = new Thickness(0, 10, 0, 0);
+            btnDirectActivate.Click += (s, e) =>
+            {
+                string em = txtListaryEmail.Text.Trim();
+                if (string.IsNullOrEmpty(em)) em = "seep_user@tool.local";
+                OneClickListaryActivateWithEmail(em);
+            };
+            lp.Children.Add(btnDirectActivate);
+
             listaryCard.Child = lp;
             panel.Children.Add(listaryCard);
 
@@ -1390,6 +1401,29 @@ namespace Seep.Suite
 
         #endregion
 
+                private void OneClickListaryActivateWithEmail(string email)
+        {
+            Log("=== Listary Pro 一键离线激活 ===");
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                var l = new List<string>();
+                bool ok = Seep.Modules.OneClickActivate.ActivateListary("Seep User", email, l);
+                foreach (var line in l) Log(line);
+
+                if (ok)
+                {
+                    Log("[OK] Listary Pro 离线激活成功！");
+                    ShowToast("Listary Pro  |  已激活 ✓", ColGreenBadgeBg, ColGreenBadgeFg);
+                    ScanTargetsAsync();
+                }
+                else
+                {
+                    Log("[-] Listary 激活失败");
+                    ShowToast("Listary Pro  |  激活失败 ✕", ColRoseBadgeBg, ColRoseBadgeFg);
+                }
+            });
+        }
+
         private void OneClickListaryActivate(TargetItemUI item)
         {
             Log("=== Listary Pro 一键离线激活 ===");
@@ -1430,7 +1464,7 @@ namespace Seep.Suite
             string lic = ListaryModule.Generate(email);
             bool pass = ListaryModule.Verify(email, lic);
 
-            txtListaryOutput.Text = string.Format("【生成的许可证 (已自动复制到剪贴板)】\r\n{0}", lic);
+            txtListaryOutput.Text = lic; // 仅显示纯 192 字符密钥，防止用户框选复制带上前缀
             Clipboard.SetText(lic);
 
             Log(string.Format("[+] Listary 许可证签发成功 (自检 {0}): {1}", pass ? "PASS" : "FAIL", email));
@@ -1446,7 +1480,7 @@ namespace Seep.Suite
             try
             {
                 string code = SnipasteModule.BuildActivationCode("Seep User", "seep@tool.local", "Personal", days, "", l);
-                txtSnipasteOutput.Text = string.Format("【生成的离线激活码 (已自动复制到剪贴板)】\r\n{0}", code);
+                txtSnipasteOutput.Text = code; // 仅显示纯激活码
                 Clipboard.SetText(code);
 
                 foreach (var line in l) Log(line);
