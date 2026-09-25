@@ -121,22 +121,14 @@ namespace Seep.Suite
 
         // 选项卡与视图
         private Button tabBtn1;
-        private Button tabBtn2;
         private Button tabBtn3;
 
         private ScrollViewer viewTargets;
-        private ScrollViewer viewKeygen;
         private Border viewLog;
 
         // 底部状态
         private TextBlock lblGlobalStatus;
         private TextBox txtConsole;
-
-        // 算号页面控件
-        private TextBox txtListaryEmail;
-        private TextBox txtListaryOutput;
-        private TextBox txtSnipasteDays;
-        private TextBox txtSnipasteOutput;
 
         // 目标矩阵数据
         public class TargetItemUI
@@ -467,22 +459,17 @@ namespace Seep.Suite
             Grid tabGrid = new Grid();
             tabGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             tabGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            tabGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             tabBtn1 = CreateTabButton("🎯 目标状态与修补矩阵", true);
-            tabBtn2 = CreateTabButton("🔐 授权码生成工坊", false);
             tabBtn3 = CreateTabButton("📝 实时安全审计终端", false);
 
             tabBtn1.Click += (s, e) => SwitchTab(0);
-            tabBtn2.Click += (s, e) => SwitchTab(1);
-            tabBtn3.Click += (s, e) => SwitchTab(2);
+            tabBtn3.Click += (s, e) => SwitchTab(1);
 
             Grid.SetColumn(tabBtn1, 0);
-            Grid.SetColumn(tabBtn2, 1);
-            Grid.SetColumn(tabBtn3, 2);
+            Grid.SetColumn(tabBtn3, 1);
 
             tabGrid.Children.Add(tabBtn1);
-            tabGrid.Children.Add(tabBtn2);
             tabGrid.Children.Add(tabBtn3);
 
             tabviewContainer.Child = tabGrid;
@@ -494,11 +481,9 @@ namespace Seep.Suite
             Grid.SetRow(contentContainer, 1);
 
             viewTargets = BuildViewTargets();
-            viewKeygen = BuildViewKeygen();
             viewLog = BuildViewLog();
 
             contentContainer.Children.Add(viewTargets);
-            contentContainer.Children.Add(viewKeygen);
             contentContainer.Children.Add(viewLog);
 
             main.Children.Add(contentContainer);
@@ -566,20 +551,15 @@ namespace Seep.Suite
         private void SwitchTab(int index)
         {
             viewTargets.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
-            viewKeygen.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
-            viewLog.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+            viewLog.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
 
             tabBtn1.Background = new SolidColorBrush(index == 0 ? ColCard : Colors.Transparent);
             tabBtn1.Foreground = new SolidColorBrush(index == 0 ? Color.FromRgb(240, 246, 252) : Color.FromRgb(139, 148, 158));
             tabBtn1.FontWeight = index == 0 ? FontWeights.Bold : FontWeights.Normal;
 
-            tabBtn2.Background = new SolidColorBrush(index == 1 ? ColCard : Colors.Transparent);
-            tabBtn2.Foreground = new SolidColorBrush(index == 1 ? Color.FromRgb(240, 246, 252) : Color.FromRgb(139, 148, 158));
-            tabBtn2.FontWeight = index == 1 ? FontWeights.Bold : FontWeights.Normal;
-
-            tabBtn3.Background = new SolidColorBrush(index == 2 ? ColCard : Colors.Transparent);
-            tabBtn3.Foreground = new SolidColorBrush(index == 2 ? Color.FromRgb(240, 246, 252) : Color.FromRgb(139, 148, 158));
-            tabBtn3.FontWeight = index == 2 ? FontWeights.Bold : FontWeights.Normal;
+            tabBtn3.Background = new SolidColorBrush(index == 1 ? ColCard : Colors.Transparent);
+            tabBtn3.Foreground = new SolidColorBrush(index == 1 ? Color.FromRgb(240, 246, 252) : Color.FromRgb(139, 148, 158));
+            tabBtn3.FontWeight = index == 1 ? FontWeights.Bold : FontWeights.Normal;
         }
 
         #endregion
@@ -746,15 +726,7 @@ namespace Seep.Suite
                 item.ActionBtn = CreateActionButton("DLL 部署 🚀", ColBlue, Colors.White);
                 item.ActionBtn.Click += (s, e) => ShowBandizipDeployDialog(item);
             }
-            else if (item.ActionType == "gen")
-            {
-                item.ActionBtn = CreateActionButton("生成授权 🔑", ColPurple, Colors.White);
-                item.ActionBtn.Click += (s, e) =>
-                {
-                    SwitchTab(1);
-                    if (item.Key == "snipaste") GenerateSnipasteKey();
-                };
-            }
+
             else if (item.ActionType == "activate")
             {
                 item.ActionBtn = CreateActionButton("一键激活 ⚡", ColGreen, Colors.White);
@@ -874,179 +846,6 @@ namespace Seep.Suite
                     item.BadgeText.Text = "待检测";
                 }
             }));
-        }
-
-        #endregion
-
-        #region 视图 2：授权码生成工坊
-
-        private ScrollViewer BuildViewKeygen()
-        {
-            ScrollViewer sv = new ScrollViewer
-            {
-                Visibility = Visibility.Collapsed,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-            };
-
-            StackPanel panel = new StackPanel { Margin = new Thickness(0, 0, 6, 0) };
-
-            // 1. Listary Pro 授权卡片
-            Border listaryCard = new Border
-            {
-                Background = new SolidColorBrush(ColCard),
-                CornerRadius = new CornerRadius(10),
-                BorderBrush = new SolidColorBrush(ColBorder),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(18),
-                Margin = new Thickness(0, 0, 0, 16)
-            };
-            StackPanel lp = new StackPanel();
-            lp.Children.Add(new TextBlock
-            {
-                Text = "⚡ Listary Pro 离线许可证实时生成 (三哈希 96-Bit 算法全还原)",
-                FontSize = 13.5,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(240, 246, 252)),
-                Margin = new Thickness(0, 0, 0, 6)
-            });
-            lp.Children.Add(new TextBlock
-            {
-                Text = "无需打补丁。任意输入邮箱或直接点击生成，算法还原将自动完成 19 组校验段映射并自动复制。",
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(139, 148, 158)),
-                Margin = new Thickness(0, 0, 0, 14)
-            });
-
-            Grid lRow = new Grid();
-            lRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            lRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-
-            txtListaryEmail = new TextBox
-            {
-                Height = 36,
-                Background = new SolidColorBrush(ColSidebar),
-                Foreground = Brushes.White,
-                BorderBrush = new SolidColorBrush(ColBorder),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(8, 7, 8, 7),
-                FontSize = 12,
-                Text = "seep_user@tool.local"
-            };
-            Grid.SetColumn(txtListaryEmail, 0);
-            lRow.Children.Add(txtListaryEmail);
-
-            Button btnGenListary = CreateActionButton("即时生成 ⚡", ColBlue, Colors.White);
-            btnGenListary.Margin = new Thickness(10, 0, 0, 0);
-            btnGenListary.Click += (s, e) => GenerateListaryKey();
-            Grid.SetColumn(btnGenListary, 1);
-            lRow.Children.Add(btnGenListary);
-
-            lp.Children.Add(lRow);
-
-            txtListaryOutput = new TextBox
-            {
-                Height = 70,
-                Margin = new Thickness(0, 10, 0, 0),
-                Background = new SolidColorBrush(Color.FromRgb(13, 17, 23)),
-                Foreground = new SolidColorBrush(ColGreen),
-                BorderBrush = new SolidColorBrush(ColBorderMuted),
-                BorderThickness = new Thickness(1),
-                FontFamily = new FontFamily("Consolas, Courier New"),
-                FontSize = 10.5,
-                TextWrapping = TextWrapping.Wrap,
-                IsReadOnly = true,
-                Padding = new Thickness(8)
-            };
-            lp.Children.Add(txtListaryOutput);
-
-            Button btnDirectActivate = CreateActionButton("🚀 一键直接激活 Listary（自动写入并生效，推荐！）", ColGreen, Colors.White);
-            btnDirectActivate.Height = 36;
-            btnDirectActivate.Margin = new Thickness(0, 10, 0, 0);
-            btnDirectActivate.Click += (s, e) =>
-            {
-                string em = txtListaryEmail.Text.Trim();
-                if (string.IsNullOrEmpty(em)) em = "seep_user@tool.local";
-                OneClickListaryActivateWithEmail(em);
-            };
-            lp.Children.Add(btnDirectActivate);
-
-            listaryCard.Child = lp;
-            panel.Children.Add(listaryCard);
-
-            // 2. Snipaste 授权卡片
-            Border snipasteCard = new Border
-            {
-                Background = new SolidColorBrush(ColCard),
-                CornerRadius = new CornerRadius(10),
-                BorderBrush = new SolidColorBrush(ColBorder),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(18),
-                Margin = new Thickness(0, 0, 0, 16)
-            };
-            StackPanel sp = new StackPanel();
-            sp.Children.Add(new TextBlock
-            {
-                Text = "🔐 Snipaste 2.11.3 PRO 离线激活码签发 (Ed25519 + Blake2s-128)",
-                FontSize = 13.5,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(240, 246, 252)),
-                Margin = new Thickness(0, 0, 0, 6)
-            });
-            sp.Children.Add(new TextBlock
-            {
-                Text = "读取本机唯一硬件指纹 MachineGuid 动态生成期望设备码，并借助本地密钥对签发离线激活凭据。",
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(139, 148, 158)),
-                Margin = new Thickness(0, 0, 0, 14)
-            });
-
-            Grid sRow = new Grid();
-            sRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            sRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-
-            txtSnipasteDays = new TextBox
-            {
-                Height = 36,
-                Background = new SolidColorBrush(ColSidebar),
-                Foreground = Brushes.White,
-                BorderBrush = new SolidColorBrush(ColBorder),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(8, 7, 8, 7),
-                FontSize = 12,
-                Text = "366"
-            };
-            Grid.SetColumn(txtSnipasteDays, 0);
-            sRow.Children.Add(txtSnipasteDays);
-
-            Button btnGenSnipaste = CreateActionButton("签发激活码 🔑", ColPurple, Colors.White);
-            btnGenSnipaste.Margin = new Thickness(10, 0, 0, 0);
-            btnGenSnipaste.Click += (s, e) => GenerateSnipasteKey();
-            Grid.SetColumn(btnGenSnipaste, 1);
-            sRow.Children.Add(btnGenSnipaste);
-
-            sp.Children.Add(sRow);
-
-            txtSnipasteOutput = new TextBox
-            {
-                Height = 85,
-                Margin = new Thickness(0, 10, 0, 0),
-                Background = new SolidColorBrush(Color.FromRgb(13, 17, 23)),
-                Foreground = new SolidColorBrush(ColPurpleBadgeFg),
-                BorderBrush = new SolidColorBrush(ColBorderMuted),
-                BorderThickness = new Thickness(1),
-                FontFamily = new FontFamily("Consolas, Courier New"),
-                FontSize = 10,
-                TextWrapping = TextWrapping.Wrap,
-                IsReadOnly = true,
-                Padding = new Thickness(8)
-            };
-            sp.Children.Add(txtSnipasteOutput);
-
-            snipasteCard.Child = sp;
-            panel.Children.Add(snipasteCard);
-
-            sv.Content = panel;
-            return sv;
         }
 
         #endregion
@@ -1469,41 +1268,7 @@ namespace Seep.Suite
             });
         }
 
-        private void GenerateListaryKey()
-        {
-            string email = txtListaryEmail.Text.Trim();
-            if (string.IsNullOrEmpty(email)) email = ListaryModule.RandomEmail();
 
-            string lic = ListaryModule.Generate(email);
-            bool pass = ListaryModule.Verify(email, lic);
-
-            txtListaryOutput.Text = lic; // 仅显示纯 192 字符密钥，防止用户框选复制带上前缀
-            Clipboard.SetText(lic);
-
-            Log(string.Format("[+] Listary 许可证签发成功 (自检 {0}): {1}", pass ? "PASS" : "FAIL", email));
-        }
-
-        private void GenerateSnipasteKey()
-        {
-            int days = 366;
-            int.TryParse(txtSnipasteDays.Text.Trim(), out days);
-            if (days <= 0) days = 366;
-
-            var l = new List<string>();
-            try
-            {
-                string code = SnipasteModule.BuildActivationCode("Seep User", "seep@tool.local", "Personal", days, "", l);
-                txtSnipasteOutput.Text = code; // 仅显示纯激活码
-                Clipboard.SetText(code);
-
-                foreach (var line in l) Log(line);
-                Log("[+] Snipaste 激活码签发成功并已复制到剪贴板！");
-            }
-            catch (Exception ex)
-            {
-                Log("[-] Snipaste 签发异常: " + ex.Message);
-            }
-        }
 
         #endregion
     }
