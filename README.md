@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>WPF Native Pro · 极客暗夜黑曜石架构 · 单文件 EXE · 零运行时依赖</strong>
+  <strong>WPF Native Pro  · 单文件 EXE · 零运行时依赖</strong>
 </p>
 
 <p align="center">
