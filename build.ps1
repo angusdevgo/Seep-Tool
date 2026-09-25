@@ -16,6 +16,7 @@ $sources = @(
     "$src\BandizipDllModule.cs",
     "$src\UninstallToolModule.cs",
     "$src\ListaryModule.cs",
+    "$src\OneClickActivate.cs",
     "$src\SeerModule.cs",
     "$src\SnipasteModule.cs"
 )
@@ -36,6 +37,7 @@ $argsList = @(
     "/r:PresentationFramework.dll",
     "/r:System.Drawing.dll",
     "/r:System.Numerics.dll",
+    "/r:System.Web.Extensions.dll",
     "/win32icon:$src\app.ico",
     "/win32manifest:$src\app.manifest",
     "/out:$out"

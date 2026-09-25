@@ -601,7 +601,7 @@ namespace Seep.Suite
                 new string[] { "bandizip", "Bandizip 压缩工具 (Enterprise)", "DLL 热注入代理 · 自定义授权用户/邮箱 · 黑名单直通", "bandizip" },
                 new string[] { "ut", "Uninstall Tool 卸载工具", "EXECryptor VM 共享内存 IPC 旁路 · IsRegistered 恒真", "patch" },
                 new string[] { "seer", "Seer 极速文件预览", "双重决策分支走查 · 彻底消除 7 天倒计时与激活弹窗", "patch" },
-                new string[] { "listary", "Listary Pro 效率搜索", "三哈希多项式/ELF 离线算法还原 · 192字符密钥签发", "gen" },
+                new string[] { "listary", "Listary Pro 效率搜索", "三哈希算法还原 · 192字符密钥 · 一键离线写入配置", "activate" },
                 new string[] { "snipaste", "Snipaste 截图利器", "Ed25519 签名体系与 Blake2s-128 设备指纹逆向生成", "gen" }
             };
 
@@ -745,15 +745,19 @@ namespace Seep.Suite
                 item.ActionBtn = CreateActionButton("DLL 部署 🚀", ColBlue, Colors.White);
                 item.ActionBtn.Click += (s, e) => ShowBandizipDeployDialog(item);
             }
-            else
+            else if (item.ActionType == "gen")
             {
                 item.ActionBtn = CreateActionButton("生成授权 🔑", ColPurple, Colors.White);
                 item.ActionBtn.Click += (s, e) =>
                 {
                     SwitchTab(1);
-                    if (item.Key == "listary") GenerateListaryKey();
-                    else if (item.Key == "snipaste") GenerateSnipasteKey();
+                    if (item.Key == "snipaste") GenerateSnipasteKey();
                 };
+            }
+            else if (item.ActionType == "activate")
+            {
+                item.ActionBtn = CreateActionButton("一键激活 ⚡", ColGreen, Colors.White);
+                item.ActionBtn.Click += (s, e) => OneClickListaryActivate(item);
             }
             item.ActionBtn.Width = 84;
             item.ActionBtn.Height = 30;
@@ -1385,6 +1389,38 @@ namespace Seep.Suite
         }
 
         #endregion
+
+        private void OneClickListaryActivate(TargetItemUI item)
+        {
+            Log("=== Listary Pro 一键离线激活 ===");
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (item.ActionBtn != null) { item.ActionBtn.Content = "激活中..."; item.ActionBtn.IsEnabled = false; }
+            }));
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                var l = new List<string>();
+                bool ok = Seep.Modules.OneClickActivate.ActivateListary("Seep User", "seep_user@tool.local", l);
+                foreach (var line in l) Log(line);
+
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (item.ActionBtn != null) { item.ActionBtn.Content = "一键激活 ⚡"; item.ActionBtn.IsEnabled = true; }
+                }));
+
+                if (ok)
+                {
+                    Log("[OK] Listary Pro 离线激活成功！");
+                    ShowToast("Listary Pro  |  已激活 ✓ (离线写入)", ColGreenBadgeBg, ColGreenBadgeFg);
+                    CheckSingleTarget(item);
+                }
+                else
+                {
+                    Log("[-] Listary 激活失败");
+                    ShowToast("Listary Pro  |  激活失败 ✕", ColRoseBadgeBg, ColRoseBadgeFg);
+                }
+            });
+        }
 
         private void GenerateListaryKey()
         {
