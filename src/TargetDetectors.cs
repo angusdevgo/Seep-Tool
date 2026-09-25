@@ -200,7 +200,7 @@ namespace Seep.Core
         }
     }
 
-    // ─── Snipaste: 公钥替换 + persist 4/4 ───
+    // ─── Snipaste: 1:1 INT0 原项目逻辑 (公钥替换 + 持久化免填码 Pro) ───
     public class SnipasteDetector : ITargetDetector
     {
         public string Key { get { return "snipaste"; } }
@@ -214,36 +214,11 @@ namespace Seep.Core
             if (!File.Exists(exe)) return DetectionResult.Of("missing", "未找到 Snipaste.exe");
             try
             {
-                byte[] d = File.ReadAllBytes(exe);
-
-                // persist 4/4
-                int persistOk = 0;
-                foreach (long off in SnipasteModule.PersistOffsets)
-                {
-                    long realOff = off - 0xC00 + 2;
-                    if (realOff + 4 <= d.Length &&
-                        d[realOff] == 0 && d[realOff + 1] == 0 && d[realOff + 2] == 0 && d[realOff + 3] == 0)
-                        persistOk++;
-                }
-                r.Evidence.Add("persist 补丁: " + persistOk + "/4");
-
-                // 公钥替换（首 4 字节 ≠ 官方密文头 02 D6 05 06）
-                byte[] officialHead = PeUtil.HexToBytes("02 d6 05 06");
-                long pkOff = SnipasteModule.PubkeyPatchFirstOffset;
-                bool pubkeyPatched = !(d[pkOff] == officialHead[0] && d[pkOff + 1] == officialHead[1]
-                                    && d[pkOff + 2] == officialHead[2] && d[pkOff + 3] == officialHead[3]);
-                r.Evidence.Add("内嵌公钥: " + (pubkeyPatched ? "已替换（本地 keypair）" : "官方原版"));
-
-                if (persistOk == SnipasteModule.PersistOffsets.Length && pubkeyPatched)
-                {
-                    r.State = "patched";
-                    r.Detail = "公钥替换 + persist 4/4 全部生效（启动即 Pro）";
-                }
-                else
-                {
-                    r.State = "original";
-                    r.Detail = "原版或部分修补";
-                }
+                var l = new List<string>();
+                string state = SnipasteModule.CheckState(dir, l);
+                r.State = state;
+                foreach (var s in l) r.Evidence.Add(s);
+                r.Detail = state == "patched" ? "永久专业版已固化生效 (免激活码/启动即Pro)" : "未激活原版 (点击一键激活秒成专业版)";
             }
             catch (Exception ex) { r.State = "unknown"; r.Detail = "检测异常: " + ex.Message; }
             return r;
