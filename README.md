@@ -66,12 +66,15 @@
 </div>
 
 
-###  单体独立还原（Revert）引擎
-彻底摒弃“全部还原”的粗暴模式，在每个补丁目标的右侧独立配备专属的 **`还原 ↻`** 按钮：
-- **Bandizip**：一键安全卸除 `version.dll` 代理及临时配置，原版校验完好；
-- **Uninstall Tool**：仅由原件 `.orig.exe` 恢复主程序，并自动清理注册表 `RN/RC` 授权键；
-- **Seer**：由专属备份 `.bak` 一键还原官方原版二进制；
-- **智能互锁保护**：仅当检测到目标处于已激活状态时按钮方可点击，未激活或未安装自动置灰防误触。
+###  六目标全覆盖单体彻底还原（Revert）引擎
+**全软件 100% 具备独立的【还原 ↻】功能，且必须真正还原到官方纯净状态**：
+- **Bandizip**：一键关闭进程，移除注入的 `version.dll` 代理、`version_patch.ini` 与日志，若曾有静态修改自动由 `.bak` 恢复官方原版二进制；
+- **Uninstall Tool**：一键关闭进程，由原件 `.orig.exe` 覆盖恢复主程序，并彻底删除注册表 `HKCU\Software\CrystalIdea Software\Uninstall Tool` 中的 `RN` 与 `RC` 授权键；
+- **Seer**：一键关闭进程，由专属备份 `.bak` 恢复官方原版二进制；
+- **Listary Pro**：一键关闭进程，移除系统 `hosts` 中的 `account.listary.com` 屏蔽规则（恢复官方网络连接），彻底清除 `Preferences.json` 中的 `Listary5.ProLicense.*` 授权键值与校验时间戳，删除 `.bak` 并重新拉起官方原版；
+- **Snipaste**：一键关闭进程，由官方原版备份 `Snipaste.exe.official.bak` 恢复二进制，重新拉起官方纯净原版；
+- **PixPin**：一键关闭进程与守护组件，由 `PixAuth.dll.orig` 恢复官方原版鉴权库；
+- **智能互锁状态保护**：仅当检测到目标处于已激活（`patched`）状态时【还原 ↻】按钮方可点击；未激活或未安装状态下自动半透明置灰（`Opacity: 0.5`），严防误触。
 
 ---
 
