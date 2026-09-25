@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/angusdevgo/Seep-Tool"><img src="https://img.shields.io/badge/Release-v2.2.0-brightgreen.svg?style=for-the-badge&logo=github" alt="Release"></a>
+  <a href="https://github.com/angusdevgo/Seep-Tool"><img src="https://img.shields.io/badge/Release-v2.3.0-brightgreen.svg?style=for-the-badge&logo=github" alt="Release"></a>
   <a href="https://github.com/angusdevgo/Seep-Tool/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-0078D6?style=for-the-badge&logo=windows" alt="Platform">
   <img src="https://img.shields.io/badge/Framework-.NET%204.x%20%7C%20WPF%20Native-512BD4?style=for-the-badge&logo=dotnet" alt="Framework">
