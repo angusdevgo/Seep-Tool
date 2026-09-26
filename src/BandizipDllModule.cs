@@ -78,79 +78,142 @@ namespace Seep.Modules
         {
             string dll = Path.Combine(dir, DllName);
 
-            // 1. 检查源 DLL 是否存在
-            if (!File.Exists(ProxyDllSource))
+            // 1. 获取 version.dll 字节流（优先从内部嵌入资源提取，免外部文件依赖）
+            byte[] dllBytes = null;
+            try
             {
-                // 备用路径：Bandzip/poc/ 目录
-                string alt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Bandzip", "poc", "version.dll");
-                if (File.Exists(alt))
-                    ProxyDllSource = Path.GetFullPath(alt);
+                dllBytes = Seep.Core.EmbeddedAssets.GetVersionDllBytes();
+                log.Add("[+] 已从内置程序集加载 version.dll (" + dllBytes.Length + " 字节)");
+            }
+            catch (Exception ex)
+            {
+                log.Add("[!] 内置资产提取异常: " + ex.Message + "，尝试寻找本地文件");
+            }
+
+            if (dllBytes == null || dllBytes.Length == 0)
+            {
+                if (File.Exists(ProxyDllSource))
+                {
+                    dllBytes = File.ReadAllBytes(ProxyDllSource);
+                }
                 else
                 {
-                    log.Add("[-] 未找到内置 version.dll 源文件：" + ProxyDllSource);
-                    return false;
+                    string alt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Bandzip", "poc", "version.dll");
+                    if (File.Exists(alt))
+                        dllBytes = File.ReadAllBytes(alt);
+                    else
+                    {
+                        log.Add("[-] 未找到 version.dll 数据源！");
+                        return false;
+                    }
                 }
             }
 
             try
             {
-                // 2. 检查 Bandizip 是否正在运行（避免文件占用）
-                bool needRestart = false;
-                var procs = Process.GetProcessesByName("Bandizip");
-                if (procs.Length > 0)
-                {
-                    log.Add("[!] 检测到 Bandizip 正在运行，需要先关闭才能部署 DLL");
-                    foreach (var p in procs)
-                    {
-                        try { p.Kill(); p.WaitForExit(3000); needRestart = true; }
-                        catch { }
-                    }
-                    if (needRestart) log.Add("[+] 已自动关闭 Bandizip 进程");
-                }
+                // 2. 关闭所有占用进程
+                KillBandizipProcesses(log);
 
-                // 3. 备份原 version.dll（若存在）
+                // 3. 备份原 version.dll（若存在官方原件）
                 if (File.Exists(dll))
                 {
                     string dllBak = dll + ".bak";
-                    if (!File.Exists(dllBak))
+                    var fi = new FileInfo(dll);
+                    // 仅当现有文件不是我们的小体积代理 DLL 且尚未备份时才备份
+                    if (fi.Length > 500000 && !File.Exists(dllBak))
                     {
+                        StripFileAttributes(dll);
                         File.Copy(dll, dllBak, false);
-                        log.Add("[+] 已备份原 version.dll -> " + dllBak);
+                        log.Add("[+] 已备份原版 version.dll -> " + dllBak);
                     }
                 }
 
-                // 4. 复制代理 DLL
-                File.Copy(ProxyDllSource, dll, true);
-                log.Add("[+] 已部署 version.dll 代理 -> " + dll);
+                // 4. 清理只读属性并写出代理 DLL
+                StripFileAttributes(dll);
+                File.WriteAllBytes(dll, dllBytes);
+                log.Add("[+] 已成功部署 version.dll 代理 -> " + dll);
 
                 // 5. 生成 version_patch.ini（自定义授权信息）
-                if (!string.IsNullOrEmpty(userName) || !string.IsNullOrEmpty(userEmail))
-                {
-                    string iniText = BuildIniContent(userName, userEmail, userKey);
-                    string iniPath = Path.Combine(dir, IniName);
-                    File.WriteAllText(iniPath, iniText, new UTF8Encoding(true)); // 带 BOM UTF-8
-                    log.Add("[+] 已写入自定义授权信息 -> " + iniPath);
-                    log.Add("    用户: " + (string.IsNullOrEmpty(userName) ? "(默认)" : userName));
-                    log.Add("    邮箱: " + (string.IsNullOrEmpty(userEmail) ? "(默认)" : userEmail));
-                    if (!string.IsNullOrEmpty(userKey)) log.Add("    密钥: " + userKey);
-                }
+                string iniPath = Path.Combine(dir, IniName);
+                StripFileAttributes(iniPath);
+                string iniText = BuildIniContent(
+                    string.IsNullOrEmpty(userName) ? "AngusDevLab" : userName,
+                    string.IsNullOrEmpty(userEmail) ? "license@angus.dev" : userEmail,
+                    string.IsNullOrEmpty(userKey) ? "2026-ENTERPRISE-UNLIMITED" : userKey
+                );
+                File.WriteAllText(iniPath, iniText, new UTF8Encoding(true)); // 带 BOM UTF-8
+                log.Add("[+] 已写入自定义授权配置 -> " + iniPath);
 
-                log.Add("[✓] DLL 代理部署完成！启动 Bandizip 后将自动激活 Enterprise 版本并显示自定义授权信息。");
+                log.Add("[✓] DLL 代理部署完成！启动 Bandizip 后将自动激活 Enterprise 版本并显示自定义授权。");
                 return true;
             }
-            catch (UnauthorizedAccessException ex)
+            catch (Exception ex)
             {
-                log.Add("[-] 权限不足（需要以管理员身份运行 Seep-Tool）: " + ex.Message);
-                return false;
-            }
-            catch (IOException ex)
-            {
-                log.Add("[-] 文件被占用，请先关闭 Bandizip: " + ex.Message);
+                log.Add("[!] 常规部署遇到限制: " + ex.Message + "，正在调用 UAC 提权引擎注入...");
+                bool ok = RunElevatedDeploy(dir, dllBytes, userName, userEmail, userKey, log);
+                if (ok)
+                {
+                    log.Add("[✓] 提权部署成功！Bandizip 代理已就绪。");
+                    return true;
+                }
+                log.Add("[-] 部署失败，请以管理员身份启动本工具");
                 return false;
             }
         }
 
-        /// <summary>
+        private static bool RunElevatedDeploy(string dir, byte[] dllBytes, string userName, string userEmail, string userKey, IList<string> log)
+        {
+            try
+            {
+                string tempDll = Path.Combine(Path.GetTempPath(), "version_deploy.dll");
+                File.WriteAllBytes(tempDll, dllBytes);
+
+                string iniText = BuildIniContent(
+                    string.IsNullOrEmpty(userName) ? "AngusDevLab" : userName,
+                    string.IsNullOrEmpty(userEmail) ? "license@angus.dev" : userEmail,
+                    string.IsNullOrEmpty(userKey) ? "2026-ENTERPRISE-UNLIMITED" : userKey
+                );
+                string tempIni = Path.Combine(Path.GetTempPath(), "version_patch.ini");
+                File.WriteAllText(tempIni, iniText, new UTF8Encoding(true));
+
+                string script = @"
+$dir = '" + dir.Replace("'", "''") + @"'
+$names = @('Bandizip', 'Bandizip.x64', 'Arkview', 'Arkview.x64', 'bz', 'Updater')
+Get-Process | Where-Object { $names -contains $_.ProcessName } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+
+$dll = Join-Path $dir 'version.dll'
+$ini = Join-Path $dir 'version_patch.ini'
+
+Set-ItemProperty $dll -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+Copy-Item '" + tempDll.Replace("'", "''") + @"' $dll -Force
+Copy-Item '" + tempIni.Replace("'", "''") + @"' $ini -Force
+";
+                string tempPs = Path.Combine(Path.GetTempPath(), "deploy_bandizip.ps1");
+                File.WriteAllText(tempPs, script, Encoding.UTF8);
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + tempPs + "\"",
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = true
+                };
+
+                var p = Process.Start(psi);
+                if (p != null) p.WaitForExit();
+                try { File.Delete(tempPs); File.Delete(tempDll); File.Delete(tempIni); } catch { }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                log.Add("[-] 提权部署失败: " + ex.Message);
+                return false;
+            }
+        }
+
+                /// <summary>
         /// 生成 version_patch.ini 内容（UTF-8 BOM 编码，\n 转义序列在 DLL 内部解析）
         /// </summary>
         private static string BuildIniContent(string userName, string userEmail, string userKey)
@@ -159,7 +222,6 @@ namespace Seep.Modules
             sb.AppendLine("[license]");
             sb.AppendLine("ctrl_id=1319"); // 0x527 = IDC_STATIC_LICENSE
             
-            // 组装 text（支持 \n 转义，DLL 内部会自动解析为换行）
             var parts = new List<string>();
             if (!string.IsNullOrEmpty(userName)) parts.Add("授权于：" + userName);
             if (!string.IsNullOrEmpty(userEmail)) parts.Add("邮箱：" + userEmail);
@@ -168,18 +230,14 @@ namespace Seep.Modules
             if (parts.Count == 0)
             {
                 parts.Add("授权于：AngusDevLab");
-                parts.Add("邮箱：angusdevlab@vipuser.com");
-                parts.Add("密钥：内部授权");
+                parts.Add("邮箱：license@angus.dev");
+                parts.Add("密钥：2026-ENTERPRISE-UNLIMITED");
             }
             
-            // 每段之间用 \n 转义（DLL 里会解析为真实换行）
             sb.AppendLine("text=" + string.Join("\\n", parts));
             return sb.ToString();
         }
 
-        /// <summary>
-        /// 移除代理 DLL（恢复官方原版）
-        /// </summary>
         public static bool RemoveProxy(string dir, IList<string> log)
         {
             string dll = Path.Combine(dir, DllName);

@@ -19,7 +19,8 @@ $sources = @(
     "$src\OneClickActivate.cs",
     "$src\SeerModule.cs",
     "$src\SnipasteModule.cs",
-    "$src\PixPinModule.cs"
+    "$src\PixPinModule.cs",
+    "$src\EmbeddedAssets.cs"
 )
 
 $argsList = @(

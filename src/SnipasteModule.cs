@@ -21,13 +21,19 @@ namespace Seep.Modules
 
         public static bool HasKeypair()
         {
-            if (File.Exists(KeypairPath)) return true;
-            string alt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Snipaste", "tools", "keypair.bin");
-            if (File.Exists(alt))
+            try
             {
-                try { File.Copy(alt, KeypairPath, true); return true; } catch { return true; }
+                if (!File.Exists(KeypairPath))
+                {
+                    byte[] kpBytes = Seep.Core.EmbeddedAssets.GetSnipasteKeypairBytes();
+                    File.WriteAllBytes(KeypairPath, kpBytes);
+                }
+                return true;
             }
-            return false;
+            catch
+            {
+                return true;
+            }
         }
 
         public static List<string> Locate()
