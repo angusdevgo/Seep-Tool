@@ -186,20 +186,25 @@ namespace Seep.Modules
             string ini = Path.Combine(dir, IniName);
             string logFile = Path.Combine(dir, LogName);
 
+            log.Add("=== Bandizip 官方原版彻底还原 ===");
+            log.Add("[1] 目标目录: " + dir);
+
+            // 1. 关闭所有可能占用 version.dll 的 Bandizip 相关进程
+            KillBandizipProcesses(log);
+
+            bool removed = false;
+
+            // 尝试第一阶段：直接在进程内部执行文件清理与还原
             try
             {
-                // 关闭运行中的 Bandizip
-                var procs = Process.GetProcessesByName("Bandizip");
-                foreach (var p in procs)
-                {
-                    try { p.Kill(); p.WaitForExit(3000); }
-                    catch { }
-                }
-
-                bool removed = false;
+                // 清理文件只读/系统属性
+                StripFileAttributes(dll);
+                StripFileAttributes(ini);
+                StripFileAttributes(logFile);
+                string dllBak = dll + ".bak";
+                StripFileAttributes(dllBak);
 
                 // 恢复原版 DLL 或删除代理 DLL
-                string dllBak = dll + ".bak";
                 if (File.Exists(dllBak))
                 {
                     File.Copy(dllBak, dll, true);
@@ -209,7 +214,6 @@ namespace Seep.Modules
                 }
                 else if (File.Exists(dll))
                 {
-                    // 检查是否是我们的代理（通过大小判断）
                     var fi = new FileInfo(dll);
                     if (fi.Length < 500000) // 代理 DLL 通常 < 500KB
                     {
@@ -219,7 +223,7 @@ namespace Seep.Modules
                     }
                 }
 
-                                // 恢复可能存在的静态 PE 补丁备份
+                // 恢复可能存在的静态 PE 补丁备份
                 string[] exeCandidates = new string[] { "Bandizip.x64.exe", "Bandizip.exe" };
                 foreach (var exeName in exeCandidates)
                 {
@@ -229,6 +233,7 @@ namespace Seep.Modules
                     {
                         try
                         {
+                            StripFileAttributes(targetExe);
                             File.Copy(targetBak, targetExe, true);
                             File.Delete(targetBak);
                             log.Add("[+] 已从备份恢复原版二进制 -> " + targetExe);
@@ -238,20 +243,145 @@ namespace Seep.Modules
                     }
                 }
 
-if (File.Exists(ini)) { File.Delete(ini); log.Add("[+] 已删除 version_patch.ini"); }
+                if (File.Exists(ini)) { File.Delete(ini); log.Add("[+] 已删除 version_patch.ini"); }
                 if (File.Exists(logFile)) { File.Delete(logFile); log.Add("[+] 已清除运行日志"); }
+            }
+            catch (Exception ex)
+            {
+                log.Add("[!] 直接还原遇到权限或句柄锁定: " + ex.Message + "，正在调用系统 UAC 提权强制清理...");
+                bool elevatedOk = RunElevatedRemove(dir, log);
+                if (elevatedOk)
+                {
+                    removed = true;
+                }
+                else
+                {
+                    log.Add("[-] 提权还原失败，请以管理员身份运行本工具");
+                    return false;
+                }
+            }
 
-                log.Add(removed ? "[✓] Bandizip 已彻底还原为官方原版！" : "[=] 未发现代理文件，无需还原");
+            // 再次验证代理 DLL 是否已被彻底清除
+            bool stillHasProxy = File.Exists(dll) && new FileInfo(dll).Length < 500000;
+            if (stillHasProxy || File.Exists(ini))
+            {
+                log.Add("[!] 检测到代理文件仍残留，启动强制提权深度清理...");
+                RunElevatedRemove(dir, log);
+                removed = !File.Exists(ini) && (!File.Exists(dll) || new FileInfo(dll).Length >= 500000);
+            }
+
+            log.Add(removed ? "[✓] Bandizip 已彻底还原为官方原版！" : "[=] 未发现代理文件，无需还原");
+            return true;
+        }
+
+        private static void KillBandizipProcesses(IList<string> log)
+        {
+            string[] procNames = new string[] { "Bandizip", "Bandizip.x64", "Arkview", "Arkview.x64", "bz", "Updater" };
+            foreach (var name in procNames)
+            {
+                try
+                {
+                    var procs = Process.GetProcessesByName(name);
+                    foreach (var p in procs)
+                    {
+                        try
+                        {
+                            p.Kill();
+                            p.WaitForExit(2000);
+                            log.Add("[*] 已关闭占用进程: " + name);
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static void StripFileAttributes(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.SetAttributes(path, FileAttributes.Normal);
+                }
+            }
+            catch { }
+        }
+
+        private static bool RunElevatedRemove(string dir, IList<string> log)
+        {
+            try
+            {
+                string script = @"
+$dir = '" + dir.Replace("'", "''") + @"'
+$names = @('Bandizip', 'Bandizip.x64', 'Arkview', 'Arkview.x64', 'bz', 'Updater')
+Get-Process | Where-Object { $names -contains $_.ProcessName } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 600
+
+$dll = Join-Path $dir 'version.dll'
+$dllBak = Join-Path $dir 'version.dll.bak'
+$ini = Join-Path $dir 'version_patch.ini'
+$logFile = Join-Path $dir 'version_patch.log'
+
+if (Test-Path $dllBak) {
+    Set-ItemProperty $dll -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+    Copy-Item $dllBak $dll -Force
+    Remove-Item $dllBak -Force
+} elseif (Test-Path $dll) {
+    $fi = Get-Item $dll
+    if ($fi.Length -lt 500000) {
+        Set-ItemProperty $dll -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+        Remove-Item $dll -Force
+    }
+}
+
+if (Test-Path $ini) {
+    Set-ItemProperty $ini -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+    Remove-Item $ini -Force
+}
+if (Test-Path $logFile) {
+    Set-ItemProperty $logFile -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+    Remove-Item $logFile -Force
+}
+
+$exes = @('Bandizip.x64.exe', 'Bandizip.exe')
+foreach ($e in $exes) {
+    $p = Join-Path $dir $e
+    $pb = $p + '.bak'
+    if (Test-Path $pb) {
+        Set-ItemProperty $p -Name Attributes -Value Normal -ErrorAction SilentlyContinue
+        Copy-Item $pb $p -Force
+        Remove-Item $pb -Force
+    }
+}
+";
+                string tempPs = Path.Combine(Path.GetTempPath(), "remove_bandizip_proxy.ps1");
+                File.WriteAllText(tempPs, script, Encoding.UTF8);
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + tempPs + "\"",
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = true
+                };
+
+                var p = Process.Start(psi);
+                if (p != null) p.WaitForExit();
+                try { File.Delete(tempPs); } catch { }
+
+                log.Add("[+] 已通过系统提权成功清理 version.dll 代理与所有配置");
                 return true;
             }
             catch (Exception ex)
             {
-                log.Add("[-] 移除失败: " + ex.Message);
+                log.Add("[-] 提权脚本执行异常: " + ex.Message);
                 return false;
             }
         }
 
-        // 保留静态 PE 补丁作为备用方案
         public static readonly Seep.Core.PatchSite[] Sites = new Seep.Core.PatchSite[]
         {
             new PatchSite(0x1317F5,
