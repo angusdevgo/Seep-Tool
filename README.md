@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Type-Documentation%20Only-blue?style=for-the-badge" alt="Documentation Only">
   <img src="https://img.shields.io/badge/Security-CWE--602-red?style=for-the-badge" alt="CWE-602">
   <img src="https://img.shields.io/badge/Focus-Defense%20%26%20Remediation-success?style=for-the-badge" alt="Defense">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge" alt="License"></a>
 </p>
 
 ---
@@ -85,16 +85,18 @@
 
 下表归纳了桌面客户端在鉴权设计中最常见的六类架构缺陷模式（**已做抽象化处理，不含具体攻击步骤**）：
 
-| # | 缺陷模式 | 典型表现 | 关联 CWE | 加固方向 |
+| # | 缺陷模式 | 涉及产品（实测样本） | 关联 CWE | 加固方向 |
 |:---:|:---|:---|:---|:---|
-| 1 | **单点布尔裁决** | 存在独立的 `isLicensed()` / `isPro()` 判定函数，返回值直接控制全部特权 | CWE-602 | 业务逻辑内联化，消除显式判定出口 |
-| 2 | **硬编码对称密钥** | 客户端内置 AES/DES 密钥用于解密本地凭据 | CWE-321 / CWE-798 | 改用非对称签名（Ed25519 / RSA-PSS） |
-| 3 | **动态库加载顺序缺陷** | 裸调用 `LoadLibrary` 加载同目录 DLL，未做路径与签名限定 | CWE-427 | `SetDefaultDllDirectories` + 签名白名单 |
-| 4 | **可写全局状态变量** | 进程内可写全局标志位决定授权等级 | CWE-602 | 敏感状态加密存储 + 用毕擦除 |
-| 5 | **明文进程间通信** | 鉴权服务与主程序通过管道传递无保护的状态码 | CWE-311 / CWE-345 | HMAC 消息认证 + 时戳防重放 |
-| 6 | **自研弱校验算法** | 自行设计多项式哈希、查表异或等"土制加密"作为凭据校验 | CWE-327 | 使用行业标准密码学原语 |
+| 1 | **单点布尔裁决** | **PixPin** · **Seer** · **XYplorer** · **Allen Explorer** · **Bandizip** · **Burp Suite** | CWE-602 | 业务逻辑内联化，消除显式判定出口 |
+| 2 | **硬编码密钥材料** | **Snipaste PRO** · **Allen Explorer** | CWE-321 / CWE-798 | 改用非对称签名（Ed25519 / RSA-PSS） |
+| 3 | **动态库加载顺序缺陷** | **Bandizip** · **Burp Suite** · **XYplorer** | CWE-427 | `SetDefaultDllDirectories` + 签名白名单 |
+| 4 | **可写全局状态变量** | **XYplorer** · **Bandizip** | CWE-602 | 敏感状态加密存储 + 用毕擦除 |
+| 5 | **明文进程间通信** | **Uninstall Tool** | CWE-311 / CWE-345 | HMAC 消息认证 + 时戳防重放 |
+| 6 | **自研弱校验算法** | **Listary Pro** | CWE-327 | 使用行业标准密码学原语 |
 
 > 📖 每种模式的成因剖析与对照代码，详见 [docs/02-客户端脆弱性模式矩阵.md](docs/02-客户端脆弱性模式矩阵.md)
+>
+> 📋 上述 9 款产品的逐款安全公告（含受影响版本、组件、根因与加固方案），详见 [docs/07-目标产品脆弱性公告矩阵.md](docs/07-目标产品脆弱性公告矩阵.md)
 
 ---
 
@@ -153,4 +155,21 @@
 
 ## 📄 License
 
-本项目文档遵循 [MIT License](LICENSE) 许可协议。
+本项目遵循 **[GNU General Public License v3.0](LICENSE)** 许可协议。
+
+```
+Copyright (C) 2026 Angus (angusdevgo)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
