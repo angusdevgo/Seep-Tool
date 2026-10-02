@@ -83,20 +83,21 @@
 
 ## 🎯 客户端脆弱性模式矩阵
 
-下表归纳了桌面客户端在鉴权设计中最常见的六类架构缺陷模式（**已做抽象化处理，不含具体攻击步骤**）：
+下表归纳了桌面客户端在鉴权设计中最常见的七类架构缺陷模式（**已做抽象化处理，不含具体攻击步骤**）：
 
 | # | 缺陷模式 | 涉及产品（实测样本） | 关联 CWE | 加固方向 |
 |:---:|:---|:---|:---|:---|
-| 1 | **单点布尔裁决** | **PixPin** · **Seer** · **XYplorer** · **Allen Explorer** · **Bandizip** · **Burp Suite** | CWE-602 | 业务逻辑内联化，消除显式判定出口 |
-| 2 | **硬编码密钥材料** | **Snipaste PRO** · **Allen Explorer** | CWE-321 / CWE-798 | 改用非对称签名（Ed25519 / RSA-PSS） |
+| 1 | **单点布尔裁决** | **PixPin** · **Seer** · **XYplorer** · **Allen Explorer** · **Bandizip** · **Burp Suite** · **BoosterX** | CWE-602 | 业务逻辑内联化，消除显式判定出口 |
+| 2 | **硬编码密钥材料** | **Snipaste PRO** · **Allen Explorer** · **BoosterX** | CWE-321 / CWE-798 | 改用非对称签名（Ed25519 / RSA-PSS） |
 | 3 | **动态库加载顺序缺陷** | **Bandizip** · **Burp Suite** · **XYplorer** | CWE-427 | `SetDefaultDllDirectories` + 签名白名单 |
-| 4 | **可写全局状态变量** | **XYplorer** · **Bandizip** | CWE-602 | 敏感状态加密存储 + 用毕擦除 |
+| 4 | **可写全局状态变量** | **XYplorer** · **Bandizip** · **BoosterX** | CWE-602 | 敏感状态加密存储 + 用毕擦除 |
 | 5 | **明文进程间通信** | **Uninstall Tool** | CWE-311 / CWE-345 | HMAC 消息认证 + 时戳防重放 |
 | 6 | **自研弱校验算法** | **Listary Pro** | CWE-327 | 使用行业标准密码学原语 |
+| 7 | **空值短路校验（Fail-Open）** | **BoosterX** | CWE-287 | 鉴权分支全面改为 Fail-Closed |
 
 > 📖 每种模式的成因剖析与对照代码，详见 [docs/02-客户端脆弱性模式矩阵.md](docs/02-客户端脆弱性模式矩阵.md)
 >
-> 📋 上述 9 款产品的逐款安全公告（含受影响版本、组件、根因与加固方案），详见 [docs/07-目标产品脆弱性公告矩阵.md](docs/07-目标产品脆弱性公告矩阵.md)
+> 📋 上述 10 款产品的逐款安全公告（含受影响版本、组件、根因与加固方案），详见 [docs/07-目标产品脆弱性公告矩阵.md](docs/07-目标产品脆弱性公告矩阵.md)
 
 ---
 
