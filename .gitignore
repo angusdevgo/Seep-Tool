@@ -1,0 +1,58 @@
+# ── 本仓库为纯文档型知识库 ──
+# 严禁提交任何可执行制品或二进制资产
+
+# 可执行文件
+*.exe
+*.dll
+*.so
+*.dylib
+*.msi
+*.app
+
+# 压缩包
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# 编译产物
+*.pdb
+*.obj
+*.lib
+*.exp
+*.ilk
+bin/
+obj/
+dist/
+Release/
+Debug/
+
+# 脚本与工具（防止误提交绕过类工具）
+*.pyc
+__pycache__/
+*.ps1
+*.bat
+*.cmd
+
+# 密钥与凭据（红线）
+*.key
+*.pem
+*.pfx
+*.p12
+*.token
+secrets/
+.env
+.env.*
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# 系统
+Thumbs.db
+.DS_Store
+desktop.ini
