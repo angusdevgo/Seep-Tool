@@ -56,3 +56,7 @@ secrets/
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# ── 教学靶场例外（允许源码与编译脚本，仍禁止产物）──
+!docs/05-教学靶场/build.ps1
+!docs/05-教学靶场/**/*.cs
